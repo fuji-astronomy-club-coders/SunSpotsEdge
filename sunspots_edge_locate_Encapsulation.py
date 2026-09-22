@@ -45,7 +45,9 @@ def BoundingBoxStat(filename,row_start,row_end,col_start,col_end,derivatives_tim
 
 	# 画像がTIFFじゃなかった場合の例外処理
 	else:
-		return None,None,None,None,None
+		raise ValueError(
+            f"無効な画像フォーマットです。TIFFファイルを指定してください。現在の入力: {filename}"
+        )
 
 
 
