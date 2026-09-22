@@ -59,7 +59,8 @@ def BoundingBoxStat(
 		)
 
 		#描画
-		DrawResult(data, row, col, row_result_start, row_result_end, col_result_start, col_result_end)
+		bbox_stat = (row_result_start, row_result_end, col_result_start, col_result_end)
+		DrawResult(data, row, col, bbox_stat)
 
 		return row_result_start, col_result_start, w_result, h_result, area
 
@@ -121,7 +122,11 @@ def Differentiation(selected: np.ndarray, start: int, derivatives_times: int) ->
 
 
 
-def DrawResult(data, row, col, row_result_start, row_result_end, col_result_start, col_result_end):
+def DrawResult(
+	data: np.ndarray, row: int, col: int, bbox_stat: tuple[float,float,float,float]
+	) -> None:
+
+	row_result_start, row_result_end, col_result_start, col_result_end = bbox_stat
 
 	print(
 		f"左の座標 = ({row_result_start}, {col})  "
