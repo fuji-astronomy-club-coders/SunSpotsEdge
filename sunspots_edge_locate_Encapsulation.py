@@ -4,6 +4,24 @@ import matplotlib.pyplot as plt
 import os
 
 
+"""
+Args:
+    filename (string): フォルダの中に入っているTIFF画像のファイル名
+	row_start (int):   矩形領域の左端のx座標
+	row_end (int):     矩形領域の右端のx座標
+	col_start (int):   矩形領域の上端のy座標
+	col_end (int):     矩形領域の下端のy座標
+	derivatives_times(int): 何回微分するのか (1回 or 2回)
+Return:
+    row_result_start (float): 求めた外接矩形の左端のx座標
+	col_result_start (float): 求めた外接矩形の上端のy座標
+	w_result (float): 求めた外接矩形の横の長さ
+	h_result (float): 求めた外接矩形の縦の長さ
+	area: 外接矩形の面積
+Raise:
+    ValueError: 画像がTIFFファイルではないとき
+"""
+
 def BoundingBoxStat(filename,row_start,row_end,col_start,col_end,derivatives_times):
 
 	if filename.lower().endswith((".tif", ".tiff")):
@@ -71,7 +89,7 @@ def Differentiation(selected,start,derivatives_times):
 		# 元画像上の座標に戻す。差分を1回とっているため+0.5するのが妥当
 		max_coordinate = start + max_index + 0.5
 
-		return min_coordinate, max_coordinate
+		return float(min_coordinate), float(max_coordinate)
 	
 	else:
 
@@ -97,7 +115,7 @@ def Differentiation(selected,start,derivatives_times):
 		# 元画像上の列番号に戻す。差分を2回とっているため+1するのが妥当
 		min_coordinate_right = start + min_index_right + max_index + 1
 		
-		return min_coordinate_left, min_coordinate_right
+		return float(min_coordinate_left), float(min_coordinate_right)
 
 
 
