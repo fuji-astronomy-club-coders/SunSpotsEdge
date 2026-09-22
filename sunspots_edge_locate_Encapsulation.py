@@ -6,7 +6,7 @@ import os
 
 """
 Args:
-    filename (string): フォルダの中に入っているTIFF画像のファイル名
+    filename (str): フォルダの中に入っているTIFF画像のファイル名
 	row_start (int):   矩形領域の左端のx座標
 	row_end (int):     矩形領域の右端のx座標
 	col_start (int):   矩形領域の上端のy座標
@@ -22,8 +22,10 @@ Raise:
     ValueError: 画像がTIFFファイルではないとき
 """
 
-def BoundingBoxStat(filename,row_start,row_end,col_start,col_end,derivatives_times):
-
+def BoundingBoxStat(
+	filename: str, row_start: int, row_end: int, col_start: int, col_end: int, derivatives_times: int
+) -> tuple[float,float,float,float,float]:
+	
 	if filename.lower().endswith((".tif", ".tiff")):
 
 		# 画像を読み込む
@@ -70,7 +72,7 @@ def BoundingBoxStat(filename,row_start,row_end,col_start,col_end,derivatives_tim
 
 
 # 微分から座標検出までやってくれる関数。BoundingBoxStatから呼ばれます
-def Differentiation(selected,start,derivatives_times):
+def Differentiation(selected: np.ndarray, start: int, derivatives_times: int) -> tuple[float,float]:
 
 	if derivatives_times == 1:
 
