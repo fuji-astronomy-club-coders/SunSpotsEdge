@@ -4,27 +4,27 @@ import matplotlib.pyplot as plt
 import os
 
 
-"""
-Args:
-    filename (str): フォルダの中に入っているTIFF画像のファイル名
-	row_start (int):   矩形領域の左端のx座標
-	row_end (int):     矩形領域の右端のx座標
-	col_start (int):   矩形領域の上端のy座標
-	col_end (int):     矩形領域の下端のy座標
-	derivatives_times(int): 何回微分するのか (1回 or 2回)
-Return:
-    row_result_start (float): 求めた外接矩形の左端のx座標
-	col_result_start (float): 求めた外接矩形の上端のy座標
-	w_result (float): 求めた外接矩形の横の長さ
-	h_result (float): 求めた外接矩形の縦の長さ
-	area: 外接矩形の面積
-Raise:
-    ValueError: 画像がTIFFファイルではないとき
-"""
-
 def BoundingBoxStat(
 	filename: str, row_start: int, row_end: int, col_start: int, col_end: int, derivatives_times: int
 ) -> tuple[float,float,float,float,float]:
+
+	"""
+	Args:
+		filename (str): フォルダの中に入っているTIFF画像のファイル名
+		row_start (int):   矩形領域の左端のx座標
+		row_end (int):     矩形領域の右端のx座標
+		col_start (int):   矩形領域の上端のy座標
+		col_end (int):     矩形領域の下端のy座標
+		derivatives_times(int): 何回微分するのか (1回 or 2回)
+	Return:
+		row_result_start (float): 求めた外接矩形の左端のx座標
+		col_result_start (float): 求めた外接矩形の上端のy座標
+		w_result (float): 求めた外接矩形の横の長さ
+		h_result (float): 求めた外接矩形の縦の長さ
+		area: 外接矩形の面積
+	Raise:
+		ValueError: 画像がTIFFファイルではないとき
+	"""
 	
 	if filename.lower().endswith((".tif", ".tiff")):
 
