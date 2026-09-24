@@ -62,7 +62,8 @@ convention = "numpy"
 quote-style = "double"
 [tool.basedpyright]
 include = [
-    "sunspotsedge",     
+    "sunspotsedge",  
+    ]   
 exclude = [
     "**/__pycache__",
     ".venv",
