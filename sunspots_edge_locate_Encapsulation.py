@@ -8,7 +8,12 @@ from PIL import Image
 
 
 def BoundingBoxStat(
-    filename: str | Path, row_start: int, row_end: int, col_start: int, col_end: int, derivatives_times: int
+    filename: str | Path,
+    row_start: int,
+    row_end: int,
+    col_start: int,
+    col_end: int,
+    derivatives_times: int,
 ) -> tuple[float, float, float, float, float]:
     """TIFF画像内の指定矩形領域に対して微分を行い、外接矩形の座標と面積を計算・描画します。
 
@@ -57,8 +62,12 @@ def BoundingBoxStat(
         col_selected = data[col_start : col_end + 1, row].astype(int)
 
         # 微分から座標検出までべっこに関数を設けた
-        row_result_start, row_result_end = Differentiation(row_selected, row_start, derivatives_times)
-        col_result_start, col_result_end = Differentiation(col_selected, col_start, derivatives_times)
+        row_result_start, row_result_end = Differentiation(
+            row_selected, row_start, derivatives_times
+        )
+        col_result_start, col_result_end = Differentiation(
+            col_selected, col_start, derivatives_times
+        )
 
         w_result = row_result_end - row_result_start
         h_result = col_result_end - col_result_start
@@ -81,10 +90,14 @@ def BoundingBoxStat(
 
     # 画像がTIFFじゃなかった場合の例外処理
     else:
-        raise ValueError(f"無効な画像フォーマットです。TIFFファイルを指定してください。現在の入力: {filename}")
+        raise ValueError(
+            f"無効な画像フォーマットです。TIFFファイルを指定してください。現在の入力: {filename}"
+        )
 
 
-def Differentiation(selected: np.ndarray, start: int, derivatives_times: int) -> tuple[float, float]:
+def Differentiation(
+    selected: np.ndarray, start: int, derivatives_times: int
+) -> tuple[float, float]:
     """選択された1次元配列に対して1階または2階微分を行い、極値に対応する座標を特定します。
 
     Parameters
@@ -145,7 +158,9 @@ def Differentiation(selected: np.ndarray, start: int, derivatives_times: int) ->
         return float(min_coordinate_left), float(min_coordinate_right)
 
 
-def DrawResult(data: np.ndarray, row: int, col: int, bbox_stat: tuple[float, float, float, float]) -> None:
+def DrawResult(
+    data: np.ndarray, row: int, col: int, bbox_stat: tuple[float, float, float, float]
+) -> None:
     """検出された端点座標を画像上にプロットして表示します。
 
     Parameters
