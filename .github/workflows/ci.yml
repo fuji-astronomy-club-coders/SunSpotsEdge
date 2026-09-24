@@ -1,11 +1,13 @@
 name: Python Code Quality
 
-# PR作成時およびメインブランチへのプッシュ時に実行
 on:
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
+
+permissions:
+  contents: write
 
 jobs:
   lint-and-typecheck:
@@ -15,26 +17,89 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
-          cache: 'pip' # pipのキャッシュを有効化して高速化
+          python-version: "3.13"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: Upgrade pip and install TOML parser
         run: |
           python -m pip install --upgrade pip
-          # 実行環境に必要なライブラリがあればここでインストール
-          # pip install -r requirements.txt 
-          pip install ruff pyright
+          python -m pip install tomlkit
 
-      - name: Run Ruff (Lint & Docstring Check)
+      # pyproject.toml の dev 依存関係を自動的に整備する。
+      # 既存の依存関係は維持し、ruff / pyright が無ければ追加する。
+      - name: Update pyproject.toml development dependencies
         run: |
-          # 警告だけでなく、エラーがあれば CI を終了 (exit 1) させる
+          python - <<'PY'
+          from pathlib import Path
+          from tomlkit import dumps, load
+
+          path = Path("pyproject.toml")
+
+          if not path.exists():
+              raise SystemExit("pyproject.toml が見つかりません。")
+
+          with path.open("r", encoding="utf-8") as f:
+              doc = load(f)
+
+          project = doc.get("project")
+          if project is None:
+              raise SystemExit("[project] が pyproject.toml にありません。")
+
+          optional = project.get("optional-dependencies")
+          if optional is None:
+              optional = {}
+              project["optional-dependencies"] = optional
+
+          dev = optional.get("dev")
+          if dev is None:
+              dev = []
+              optional["dev"] = dev
+
+          required = ["ruff", "pyright"]
+
+          for package in required:
+              if not any(
+                  str(dep).split("[", 1)[0].split("=", 1)[0].split("<", 1)[0]
+                  .split(">", 1)[0].strip().lower() == package
+                  for dep in dev
+              ):
+                  dev.append(package)
+
+          with path.open("w", encoding="utf-8") as f:
+              f.write(dumps(doc))
+          PY
+
+      # 変更があった場合だけ GitHub リポジトリへ反映する。
+      # PR では通常、PRブランチへコミットされる。
+      - name: Commit updated pyproject.toml
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add pyproject.toml
+
+          if git diff --cached --quiet; then
+            echo "pyproject.toml に変更はありません。"
+          else
+            git commit -m "chore: update CI development dependencies"
+            git push
+          fi
+
+      - name: Install project and development dependencies
+        run: |
+          python -m pip install -e ".[dev]"
+
+      - name: Run Ruff
+        run: |
           ruff check .
 
-      - name: Run Pyright (Type Check)
+      - name: Run Pyright
         run: |
-          # pyproject.toml の設定を自動で読み込んで実行される
           pyright
