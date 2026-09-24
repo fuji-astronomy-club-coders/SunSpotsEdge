@@ -1,4 +1,3 @@
-```yaml
 name: Python Code Quality
 
 "on":
@@ -166,4 +165,3 @@ jobs:
       - name: Run Pyright
         run: |
           pyright
-```
