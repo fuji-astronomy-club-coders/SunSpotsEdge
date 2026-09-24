@@ -1,5 +1,9 @@
-from PIL import Image
+"""画像をカーソル位置によって座標を確認しながら表示するツール"""
+
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backend_bases import MouseEvent
+from PIL import Image
 
 # TIFF画像のパス
 image_path = r"C:\Users\sakil\Downloads\2025-08-30-0437_9-CapObj - コピー\2025-08-30-0437_9-CapObj - コピー\img00001000.tiff"
@@ -8,7 +12,6 @@ image_path = r"C:\Users\sakil\Downloads\2025-08-30-0437_9-CapObj - コピー\202
 img = Image.open(image_path)
 
 # NumPy配列に変換
-import numpy as np
 data = np.array(img)
 
 fig, ax = plt.subplots()
@@ -18,8 +21,15 @@ ax.imshow(data, cmap="gray")
 
 ax.set_title("マウスカーソルを画像に合わせてください")
 
-# マウス移動時の処理
-def mouse_move(event):
+
+def mouse_move(event: MouseEvent) -> None:
+    """マウス移動イベントに応じて、現在のカーソル位置の座標とピクセル値をタイトルに表示します。
+
+    Parameters
+    ----------
+    event : MouseEvent
+        Matplotlibのマイベニューイベント情報。
+    """
     if event.inaxes == ax and event.xdata is not None and event.ydata is not None:
         x = int(event.xdata)
         y = int(event.ydata)
@@ -30,6 +40,7 @@ def mouse_move(event):
 
             ax.set_title(f"x={x}, y={y}, pixel value={value}")
             fig.canvas.draw_idle()
+
 
 fig.canvas.mpl_connect("motion_notify_event", mouse_move)
 
