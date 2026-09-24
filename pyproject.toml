@@ -50,8 +50,6 @@ select = [
 ignore = [
 "E501", # 行の長さ制限（厳密すぎる場合は除外）
 "D107", # init メソッドのdocstring必須を解除（クラス側に書くため）
-"ANN101", # self の型ヒントを必須にしない（Ruff v0.2.0以降は非推奨ですが念のため） 
-"ANN102", # cls の型ヒントを必須にしない 
 "D400", # ピリオドを必須にしない
 ]
 
@@ -62,13 +60,9 @@ convention = "numpy"
 
 [tool.ruff.format]
 quote-style = "double"
-
-
 [tool.basedpyright]
 include = [
-    "sunspotsedge",
-    "tests",
-]
+    "sunspotsedge",     
 exclude = [
     "**/__pycache__",
     ".venv",
@@ -77,6 +71,6 @@ exclude = [
     "dist",
 ]
 typeCheckingMode = "standard"
-pythonVersion = "3.11"
+pythonVersion = "3.13"
 reportMissingImports = "error"
 reportMissingTypeStubs = false
