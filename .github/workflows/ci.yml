@@ -1,167 +1,54 @@
-name: Python Code Quality
+name: CI
 
-"on":
-  pull_request:
-    branches:
-      - main
-      - master
-
+on:
   push:
     branches:
       - main
       - master
-  workflow_dispatch:
 
-permissions:
-  contents: write
+  pull_request:
 
 jobs:
-  lint-and-typecheck:
+  lint-and-type-check:
     name: Lint & Type Check
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-          cache: pip
+          cache: "pip"
 
-      - name: Upgrade pip and install TOML parser
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install tomlkit
+          python -m pip install -r dependencies.txt
 
-      - name: Update pyproject.toml development dependencies
+      - name: Install development dependencies
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          from tomlkit import dumps, load
+          python -m pip install \
+            "ruff>=0.13" \
+            "basedpyright>=1.31"
 
-          path = Path("pyproject.toml")
-
-          if not path.exists():
-              raise SystemExit("pyproject.toml が見つかりません。")
-
-          with path.open("r", encoding="utf-8") as f:
-              doc = load(f)
-
-          project = doc.get("project")
-          if project is None:
-              raise SystemExit("[project] が pyproject.toml にありません。")
-
-          optional = project.get("optional-dependencies")
-          if optional is None:
-              optional = {}
-              project["optional-dependencies"] = optional
-
-          dev = optional.get("dev")
-          if dev is None:
-              dev = []
-              optional["dev"] = dev
-
-          required = ["ruff", "pyright"]
-
-          def package_name(requirement: str) -> str:
-              value = str(requirement).strip()
-
-              for marker in (
-                  "[",
-                  "==",
-                  ">=",
-                  "<=",
-                  "!=",
-                  "~=",
-                  ">",
-                  "<",
-                  ";",
-              ):
-                  value = value.split(marker, 1)[0]
-
-              return value.strip().lower()
-
-          for package in required:
-              if not any(package_name(dep) == package for dep in dev):
-                  dev.append(package)
-
-          with path.open("w", encoding="utf-8") as f:
-              f.write(dumps(doc))
-          PY
-
-      - name: Commit updated pyproject.toml
-        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      - name: Check dependencies.txt
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python generate_dependencies.py --check
 
-          git add pyproject.toml
-
-          if git diff --cached --quiet; then
-            echo "pyproject.toml に変更はありません。"
-          else
-            git commit -m "chore: update CI development dependencies"
-            git push
-          fi
-
-      - name: Generate CI requirements from pyproject.toml
-        env:
-          RUNNER_TEMP: ${{ runner.temp }}
-        run: |
-          python - <<'PY'
-          import os
-          from pathlib import Path
-          from tomlkit import load
-
-          pyproject = Path("pyproject.toml")
-          requirements = Path(os.environ["RUNNER_TEMP"]) / "requirements-ci.txt"
-
-          with pyproject.open("r", encoding="utf-8") as f:
-              doc = load(f)
-
-          project = doc.get("project")
-          if project is None:
-              raise SystemExit("[project] が pyproject.toml にありません。")
-
-          dependencies = list(project.get("dependencies") or [])
-
-          optional = project.get("optional-dependencies") or {}
-          dev = list(optional.get("dev") or [])
-
-          all_requirements = []
-          seen = set()
-
-          for requirement in dependencies + dev:
-              requirement = str(requirement).strip()
-
-              if requirement and requirement not in seen:
-                  all_requirements.append(requirement)
-                  seen.add(requirement)
-
-          requirements.write_text(
-              "\n".join(all_requirements) + "\n",
-              encoding="utf-8",
-          )
-
-          print("CI dependencies:")
-          for requirement in all_requirements:
-              print(f"  - {requirement}")
-
-          print(f"requirements file: {requirements}")
-          PY
-
-      - name: Install dependencies without installing the project
-        run: |
-          python -m pip install -r "${RUNNER_TEMP}/requirements-ci.txt"
-
-      - name: Run Ruff
+      - name: Ruff check
         run: |
           ruff check .
 
-      - name: Run Pyright
+      - name: Ruff format check
         run: |
-          pyright
+          ruff format --check .
+
+      - name: basedpyright
+        run: |
+          basedpyright

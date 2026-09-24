@@ -1,19 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "SunSpotEdges"
 version = "0.0.0"
+description = "Solar sunspot detection and edge analysis"
 requires-python = ">=3.13"
 dependencies = [
-"matplotlib3.11.1",
-"numpy2.5.3",
-"pillow==12.3.0",
+    "numpy>=2.0",
+    "matplotlib>=3.9",
+    "Pillow>=10.0",
 ]
-[tool.pyright]
-extraPaths = ["."]
-typeCheckingMode = "basic"
-pythonVersion = "3.13"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.13",
+    "basedpyright>=1.31",
+]
+
+[tool.setuptools]
+packages = ["sunspotsedge"]
 [tool.ruff]
+line-length = 100
 target-version = "py313"
-line-length = 115
+exclude = [
+    ".git",
+    ".github",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+
 [tool.ruff.lint]
 select = [
 "E", # pycodestyle (エラー)
@@ -31,10 +50,33 @@ select = [
 ignore = [
 "E501", # 行の長さ制限（厳密すぎる場合は除外）
 "D107", # init メソッドのdocstring必須を解除（クラス側に書くため）
-"ANN101", # self の型ヒントを必須にしない（Ruff v0.2.0以降は非推奨ですが念のため） "ANN102", # cls の型ヒントを必須にしない "D400", # ピリオドを必須にしない
+"ANN101", # self の型ヒントを必須にしない（Ruff v0.2.0以降は非推奨ですが念のため） 
+"ANN102", # cls の型ヒントを必須にしない 
+"D400", # ピリオドを必須にしない
 ]
 
 # pydocstyleの標準フォーマットに numpy を指定
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.format]
+quote-style = "double"
+
+
+[tool.basedpyright]
+include = [
+    "sunspotsedge",
+    "tests",
+]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+typeCheckingMode = "standard"
+pythonVersion = "3.11"
+reportMissingImports = "error"
+reportMissingTypeStubs = false
