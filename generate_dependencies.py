@@ -1,17 +1,16 @@
-from __future__ import annotations
+"""Generate dependencies.txt from Python imports and pyproject.toml."""
+
+from __future__ import annotations  # noqa:I001
 
 import argparse
 import ast
 import importlib.metadata
 import keyword
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
-
-REQUIREMENT_NAME_RE = re.compile(
-    r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)"
-)
+REQUIREMENT_NAME_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
 
 IGNORED_DIRS = {
     ".git",
@@ -44,6 +43,7 @@ IMPORT_TO_DISTRIBUTION = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Analyze Python imports and generate dependencies.txt."
     )
@@ -84,10 +84,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def normalize_distribution_name(name: str) -> str:
+    """Normalize package distribution name."""
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def extract_requirement_name(requirement: str) -> str | None:
+    """Extract package requirement name from requirement string."""
     match = REQUIREMENT_NAME_RE.match(requirement)
 
     if not match:
@@ -97,6 +99,7 @@ def extract_requirement_name(requirement: str) -> str | None:
 
 
 def load_project_dependencies(pyproject: Path) -> list[str]:
+    """Load dependencies from pyproject.toml."""
     import tomllib
 
     with pyproject.open("rb") as fp:
@@ -116,6 +119,7 @@ def find_python_files(
     root: Path,
     include_tests: bool,
 ) -> list[Path]:
+    """Find Python files under the given root directory."""
     files: list[Path] = []
 
     for path in root.rglob("*.py"):
@@ -133,6 +137,7 @@ def find_python_files(
 
 
 def extract_imports(path: Path) -> set[str]:
+    """Extract top-level imported package names from a Python file."""
     try:
         source = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -158,6 +163,7 @@ def extract_imports(path: Path) -> set[str]:
 
 
 def find_local_modules(root: Path) -> set[str]:
+    """Find local Python module and package names."""
     modules: set[str] = set()
 
     for path in root.rglob("*.py"):
@@ -176,14 +182,13 @@ def find_local_modules(root: Path) -> set[str]:
 
 
 def build_import_distribution_map() -> dict[str, set[str]]:
+    """Build a mapping from import names to distribution package names."""
     mapping: dict[str, set[str]] = {}
 
     distributions = importlib.metadata.packages_distributions()
 
     for import_name, distributions_for_import in distributions.items():
-        mapping.setdefault(import_name, set()).update(
-            distributions_for_import
-        )
+        mapping.setdefault(import_name, set()).update(distributions_for_import)
 
     return mapping
 
@@ -192,6 +197,7 @@ def resolve_distribution(
     import_name: str,
     import_distribution_map: dict[str, set[str]],
 ) -> str | None:
+    """Resolve import name to corresponding distribution package name."""
     explicit = IMPORT_TO_DISTRIBUTION.get(import_name)
 
     if explicit:
@@ -208,6 +214,7 @@ def resolve_distribution(
 
 
 def get_installed_version(distribution: str) -> str | None:
+    """Get installed version of a distribution package."""
     try:
         return importlib.metadata.version(distribution)
     except importlib.metadata.PackageNotFoundError:
@@ -215,14 +222,11 @@ def get_installed_version(distribution: str) -> str | None:
 
 
 def main() -> int:
+    """Execute the dependency analysis and write or check dependencies.txt."""
     args = parse_args()
 
     root = args.root.resolve()
-    output = (
-        args.output.resolve()
-        if args.output
-        else root / "dependencies.txt"
-    )
+    output = args.output.resolve() if args.output else root / "dependencies.txt"
 
     pyproject = root / "pyproject.toml"
 
@@ -236,12 +240,6 @@ def main() -> int:
     print(f"Project root: {root}")
 
     declared_requirements = load_project_dependencies(pyproject)
-
-    declared_distributions = {
-        normalize_distribution_name(name)
-        for requirement in declared_requirements
-        if (name := extract_requirement_name(requirement))
-    }
 
     python_files = find_python_files(
         root,
@@ -267,9 +265,7 @@ def main() -> int:
     external_imports = {
         name
         for name in imports
-        if name not in STDLIB_MODULES
-        and name not in local_modules
-        and not keyword.iskeyword(name)
+        if name not in STDLIB_MODULES and name not in local_modules and not keyword.iskeyword(name)
     }
 
     import_distribution_map = build_import_distribution_map()
@@ -293,9 +289,9 @@ def main() -> int:
             unresolved_imports.add(import_name)
             continue
 
-        discovered_distributions[
-            normalize_distribution_name(distribution)
-        ] = f"{distribution}=={version}"
+        discovered_distributions[normalize_distribution_name(distribution)] = (
+            f"{distribution}=={version}"
+        )
 
     if unresolved_imports:
         print("\nWARNING: Could not resolve imports:")
@@ -312,9 +308,7 @@ def main() -> int:
         name = extract_requirement_name(requirement)
 
         if name:
-            declared_by_name[
-                normalize_distribution_name(name)
-            ] = requirement.strip()
+            declared_by_name[normalize_distribution_name(name)] = requirement.strip()
 
     requirements: dict[str, str] = {}
 
@@ -335,9 +329,7 @@ def main() -> int:
 
     for requirement in sorted(
         requirements.values(),
-        key=lambda value: normalize_distribution_name(
-            extract_requirement_name(value) or value
-        ),
+        key=lambda value: normalize_distribution_name(extract_requirement_name(value) or value),
     ):
         lines.append(requirement)
 
