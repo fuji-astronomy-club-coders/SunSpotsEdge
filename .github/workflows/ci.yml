@@ -1,3 +1,4 @@
+```yaml
 name: Python Code Quality
 
 on:
@@ -31,8 +32,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tomlkit
 
-      # pyproject.toml の dev 依存関係を自動的に整備する。
-      # 既存の依存関係は維持し、ruff / pyright が無ければ追加する。
       - name: Update pyproject.toml development dependencies
         run: |
           python - <<'PY'
@@ -63,20 +62,24 @@ jobs:
 
           required = ["ruff", "pyright"]
 
-          for package in required:
-              if not any(
-                  str(dep).split("[", 1)[0].split("=", 1)[0].split("<", 1)[0]
-                  .split(">", 1)[0].strip().lower() == package
-                  for dep in dev
+          def package_name(requirement: str) -> str:
+              value = str(requirement).strip()
+
+              for marker in (
+                  "[", "==", ">=", "<=", "!=", "~=", ">", "<", ";"
               ):
+                  value = value.split(marker, 1)[0]
+
+              return value.strip().lower()
+
+          for package in required:
+              if not any(package_name(dep) == package for dep in dev):
                   dev.append(package)
 
           with path.open("w", encoding="utf-8") as f:
               f.write(dumps(doc))
           PY
 
-      # 変更があった場合だけ GitHub リポジトリへ反映する。
-      # PR では通常、PRブランチへコミットされる。
       - name: Commit updated pyproject.toml
         if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
@@ -92,9 +95,52 @@ jobs:
             git push
           fi
 
-      - name: Install project and development dependencies
+      - name: Generate CI requirements from pyproject.toml
         run: |
-          python -m pip install -e ".[dev]"
+          python - <<'PY'
+          from pathlib import Path
+          from tomlkit import load
+
+          pyproject = Path("pyproject.toml")
+          requirements = Path("${RUNNER_TEMP}/requirements-ci.txt")
+
+          with pyproject.open("r", encoding="utf-8") as f:
+              doc = load(f)
+
+          project = doc.get("project")
+          if project is None:
+              raise SystemExit("[project] が pyproject.toml にありません。")
+
+          dependencies = list(project.get("dependencies") or [])
+
+          optional = project.get("optional-dependencies") or {}
+          dev = list(optional.get("dev") or [])
+
+          all_requirements = []
+          seen = set()
+
+          for requirement in dependencies + dev:
+              requirement = str(requirement).strip()
+
+              if requirement and requirement not in seen:
+                  all_requirements.append(requirement)
+                  seen.add(requirement)
+
+          requirements.write_text(
+              "\n".join(all_requirements) + "\n",
+              encoding="utf-8",
+          )
+
+          print("CI dependencies:")
+          for requirement in all_requirements:
+              print(f"  - {requirement}")
+
+          print(f"requirements file: {requirements}")
+          PY
+
+      - name: Install project dependencies without installing the project
+        run: |
+          python -m pip install -r "${RUNNER_TEMP}/requirements-ci.txt"
 
       - name: Run Ruff
         run: |
@@ -103,3 +149,4 @@ jobs:
       - name: Run Pyright
         run: |
           pyright
+```
